@@ -78,7 +78,9 @@ header h1{font-size:17px;font-weight:700}
 header p{color:var(--muted);font-size:12px}
 
 /* ── MAIN NAV (level 1) ── */
-.mnav{padding:8px 24px 6px;background:var(--card);border-bottom:2px solid var(--border)}
+/* Le menu est repliable sur tous les écrans : visible uniquement si #topbar a la classe .nav-open */
+.mnav{display:none;padding:8px 24px 6px;background:var(--card);border-bottom:2px solid var(--border)}
+#topbar.nav-open .mnav{display:block}
 .nav-row{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:3px 0}
 .nav-cat{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;min-width:46px;padding-right:6px;flex-shrink:0}
 .nav-cat.s1{color:var(--accent)}.nav-cat.s2{color:var(--accent2)}.nav-cat.util{color:var(--green)}.nav-cat.base{color:var(--muted)}
@@ -300,6 +302,70 @@ pre.code .tag{color:#ff9d6b}
 .fig .cap b{color:var(--text)}
 .svg-lbl{font:600 11px 'Segoe UI',sans-serif}
 .svg-sm{font:500 9px 'Segoe UI',sans-serif}
+
+/* ══════════════════════════════ RESPONSIVE — TÉLÉPHONE & TABLETTE ══════════════════════════════ */
+/* Bouton menu / réduire le bandeau — visible sur TOUS les écrans */
+.navToggle{display:inline-flex;align-items:center;gap:6px;margin-left:auto;background:var(--card2);border:1px solid var(--border);color:var(--text);font-size:13px;font-weight:600;line-height:1;padding:8px 13px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:all .2s}
+.navToggle:hover{border-color:var(--accent);color:var(--accent)}
+#topbar.nav-open .navToggle{border-color:var(--accent);color:var(--accent)}
+/* Équations longues : défilement horizontal au lieu de déborder de l'écran */
+mjx-container{max-width:100%}
+mjx-container[display="true"]{overflow-x:auto;overflow-y:hidden}
+/* Cases de code / défilement tactile fluide */
+.snav,.sec-b,.meth-b,pre.code,.fig{-webkit-overflow-scrolling:touch}
+
+/* ── Tablette (≤1024px) : on resserre légèrement ── */
+@media(max-width:1024px){
+  .pg{padding:24px 18px}
+  .mega-grid{grid-template-columns:1fr 1fr}
+}
+
+/* ── Téléphone & tablette portrait (≤820px) : nav repliable en menu ── */
+@media(max-width:820px){
+  header{padding:10px 14px;gap:10px}
+  header h1{font-size:15px}
+  header p{display:none}                         /* sous-titre masqué */
+  .hbadge{font-size:10px;padding:2px 7px}
+  .timer-box{display:none}                        /* Pomodoro masqué (secondaire) sur mobile */
+  /* Le menu principal devient un panneau déroulant en superposition */
+  .mnav{position:absolute;top:100%;left:0;right:0;display:none;max-height:76vh;overflow-y:auto;
+        box-shadow:0 14px 34px rgba(0,0,0,.6);border-bottom:2px solid var(--accent);padding:10px 14px}
+  #topbar.nav-open .mnav{display:block}
+  .nav-row{gap:7px 5px;padding:5px 0}
+  .nav-search{padding:2px 0 10px}
+  #navSearch{min-width:0;max-width:none}
+  /* Cibles tactiles plus généreuses */
+  .mb{padding:9px 13px;font-size:13px}
+  .sb{padding:9px 14px;font-size:12px}
+  .snav{padding:7px 12px;gap:4px}
+  .pg{padding:18px 13px}
+  .sec-b{padding:15px 13px}
+  .sec-h{padding:12px 14px}
+  .banner{padding:16px 15px}
+  .banner h2{font-size:18px}
+  .mega-wrap,.fiche-wrap,.fc-wrap{padding:16px 12px}
+  .mega-grid{grid-template-columns:1fr}
+  table{font-size:11px}
+  th,td{padding:6px 8px}
+  .exo-h{flex-wrap:wrap;gap:7px}
+  .edif{margin-left:0}
+}
+
+/* ── Petit téléphone (≤480px) : derniers ajustements ── */
+@media(max-width:480px){
+  body{font-size:14.5px;line-height:1.65}
+  .banner h2{font-size:16.5px}
+  .banner .blabel{font-size:10.5px}
+  .sec-b{padding:13px 11px}
+  .pg{padding:14px 10px}
+  .sec-h h3{font-size:13px}
+  .flashcard{height:350px}
+  .fc-face{padding:20px}
+  .fc-q{font-size:16.5px}
+  .fc-a{font-size:14.5px;max-height:270px}
+  .quiz-card{padding:16px}
+  .step{gap:9px}
+}
 </style>
 </head>
 <body>
@@ -326,6 +392,7 @@ pre.code .tag{color:#ff9d6b}
       <button class="timer-btn" onclick="resetTimer()">↺ Reset</button>
     </div>
   </div>
+  <button class="navToggle" onclick="toggleNav()" aria-label="Ouvrir le menu" aria-expanded="false">☰ Menu</button>
 </header>
 
 <div class="mnav">
@@ -387,6 +454,19 @@ pre.code .tag{color:#ff9d6b}
   </div>
 </div>
 </div>
+<script>
+/* État initial du bandeau (sans clignotement) : ouvert par défaut sur ordinateur,
+   replié sur mobile ; l'utilisateur peut forcer l'un ou l'autre (mémorisé). */
+(function(){try{
+  var t=document.getElementById('topbar');if(!t)return;
+  var saved=localStorage.getItem('ece_nav');           // 'open' | 'closed' | null (préférence ordinateur)
+  /* Ordinateur : ouvert sauf si l'utilisateur l'a réduit. Mobile : toujours replié (hamburger). */
+  var open = (window.innerWidth>820) ? (saved!=='closed') : false;
+  if(open)t.classList.add('nav-open');
+  var b=t.querySelector('.navToggle');
+  if(b){b.setAttribute('aria-expanded',open);b.innerHTML=open?'▲ Réduire':'☰ Menu';}
+}catch(e){}})();
+</script>
 
 <!-- ══════════════════════════════ SEC 0 — ACCUEIL ══════════════════════════════ -->
 <div class="msec active" id="m0">
@@ -4910,7 +4990,28 @@ function typeset(el){
   _tsSet.add(t);
   MathJax.typesetPromise([t]).catch(()=>{});
 }
+function _setNavBtn(open){
+  const b=document.querySelector('.navToggle');
+  if(b){b.setAttribute('aria-expanded',open);b.innerHTML=open?'▲ Réduire':'☰ Menu';}
+}
+function toggleNav(){
+  const t=document.getElementById('topbar');if(!t)return;
+  const open=t.classList.toggle('nav-open');
+  _setNavBtn(open);
+  /* On mémorise le choix (réduit/ouvert) uniquement sur ordinateur ; sur mobile c'est transitoire. */
+  if(window.innerWidth>820){try{localStorage.setItem('ece_nav',open?'open':'closed');}catch(e){}}
+  if(typeof updateTopbarH==='function')updateTopbarH();
+}
+function closeNav(){
+  /* Referme automatiquement après navigation UNIQUEMENT sur mobile (menu en superposition). */
+  if(window.innerWidth>820)return;
+  const t=document.getElementById('topbar');if(!t||!t.classList.contains('nav-open'))return;
+  t.classList.remove('nav-open');
+  _setNavBtn(false);
+  if(typeof updateTopbarH==='function')updateTopbarH();
+}
 function showM(i){
+  closeNav();                                   /* referme le menu mobile après sélection */
   document.querySelectorAll('.msec').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.mb').forEach(b=>b.classList.remove('active'));
   const sec=document.getElementById('m'+i);
@@ -5294,6 +5395,11 @@ function updateTopbarH(){
 window.addEventListener('resize',updateTopbarH);
 if(window.ResizeObserver){const _tb=document.getElementById('topbar');if(_tb)new ResizeObserver(updateTopbarH).observe(_tb);}
 window.addEventListener('load',()=>{
+  // Filet de sécurité : (ré)applique l'état du bandeau une fois la largeur réelle connue
+  const _t=document.getElementById('topbar');
+  if(_t){let _sv=null;try{_sv=localStorage.getItem('ece_nav');}catch(e){}
+    const _open=(window.innerWidth>820)?(_sv!=='closed'):false;
+    _t.classList.toggle('nav-open',_open);_setNavBtn(_open);}
   updateTopbarH();
   renderRevision();
   let s=0;try{s=parseInt(localStorage.getItem('ece_sec'),10);if(isNaN(s))s=0;}catch(e){s=0;}
